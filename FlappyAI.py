@@ -79,9 +79,44 @@ class Bird:
                                             topleft=(self.x, self.y)).center)
         win.blit(rotated_image, new_rect.topleft)
 
-    # Collision
+# Mask -> check where all the pixels in images. it is used for collision check
     def get_mask(self):
         return pg.mask.from_surface(self.img)
+
+
+class Pipe:
+    GAP = 200
+    VEL = 5
+
+    def __init__(self, x):
+        self.x = x
+        self.height = 0
+        self.top = 0
+        self.bottom = 0
+        self.PIPE_TOP = pg.transform.flip(PIPE_IMG, False, True)
+        self.PIPE_BOTTOM = PIPE_IMG
+        self.passed = False #If a bird passed a pipe, it's for collision
+        self.set_height()
+
+    def set_height(self):
+        self.height = random.randrange(50, 450)
+        self.top = self.height - self.PIPE_TOP.get_height()
+        self.bottom = self.height + self.GAP
+
+    def move(self):
+        self.x -= self.VEL
+
+    def draw(self, win):
+        win.blit(self.PIPE_TOP, (self.x, self.top))
+        win.blit(self.PIPE_BOTTOM, (self.x, self.bottom))
+
+    def collide(self, bird, win):
+        bird_mask = bird.get_mask()
+        top_mask = pg.mask.from_surface(self.PIPE_TOP)
+        bottom_mask = pg.mask.from_surface(self.PIPE_BOTTOM)
+        top_offset = (self.x - bird.x)
+
+        # Pixel Perfect Collision 11:30
 
 
 
