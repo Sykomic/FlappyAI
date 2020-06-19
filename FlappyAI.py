@@ -179,6 +179,19 @@ def draw_window(win, birds, pipes, base, score, gen, alive):
     pg.display.update()
 
 
+def draw_window(win, bird, pipes, base, score):
+    win.blit(BG_IMG, (0, 0))
+
+    for pipe in pipes:
+        pipe.draw(win)
+
+    text = STAT_FONT.render("Score: " + str(score), 1, (255, 255, 255))
+    win.blit(text, (WIN_WIDTH - 10 - text.get_width(), 10))
+
+    base.draw(win)
+    bird.draw(win)
+    pg.display.update()
+
 def eval_genome(genome, config):
     global GEN
     GEN += 1
@@ -266,6 +279,27 @@ def eval_genome(genome, config):
         base.move()
         draw_window(win, birds, pipes, base, score, GEN, len(birds))
 
+def gameover(win, score):
+    win.blit(BG_IMG, (0, 0))
+    text = STAT_FONT.render("Game Over!", 1, (255, 255, 255))
+    text_width = text.get_width()
+    text_height = text.get_height()
+    center = (WIN_WIDTH / 2 - text_width / 2, WIN_HEIGHT / 2 - text_height / 2 - 50)
+    win.blit(text, center)
+    text = STAT_FONT.render("You scored " + str(score) + " Points", 1, (255, 255, 255))
+    text_width = text.get_width()
+    text_height = text.get_height()
+    center = (WIN_WIDTH / 2 - text_width / 2, WIN_HEIGHT / 2 - text_height / 2)
+    win.blit(text, center)
+    text = STAT_FONT.render("Press space bar to play again", 1, (255, 255, 255))
+    text_width = text.get_width()
+    text_height = text.get_height()
+    center = (WIN_WIDTH / 2 - text_width / 2, WIN_HEIGHT / 2 - text_height / 2 + 50)
+    win.blit(text, center)
+
+    pg.display.update()
+
+
 def main():
     bird = Bird(230, 350)
     base = Base(730)
@@ -275,9 +309,13 @@ def main():
     score = 0
 
     run = True
+    over = False
     while run:
-        clock.tick(30)
+        clock.tick(100) #30
         for event in pg.event.get():
+            if event.type == pg.KEYDOWN:
+                if event.key == pg.K_SPACE:
+                    bird.jump()
             if event.type == pg.QUIT:
                 run = False
         #bird.move()
@@ -285,25 +323,30 @@ def main():
         rem = []  # removed pipes
         for pipe in pipes:
             if pipe.collide(bird, win):
-                pass
+                over = True
+                break
             if pipe.x + pipe.PIPE_TOP.get_width() < 0:
                 rem.append(pipe)
             if not pipe.passed and pipe.x < bird.x:
                 pipe.passed = True
                 add_pipe = True
             pipe.move()
-        if add_pipe:
-            score += 1
-            pipes.append(Pipe(600))
 
-        for r in rem:
-            pipes.remove(r)
+        if over:
+            gameover(win, score)
+        else:
+            if add_pipe:
+                score += 1
+                pipes.append(Pipe(600))
 
-        if bird.y + bird.img.get_height() >= 730:
-            pass
+            for r in rem:
+                pipes.remove(r)
 
-        base.move()
-        draw_window(win, bird, pipes, base, score)
+            if bird.y + bird.img.get_height() >= 730:
+                pass
+
+            base.move()
+            draw_window(win, bird, pipes, base, score)
     #pg.quit()
     #quit()
 
@@ -323,6 +366,7 @@ def run(config_path):
 if __name__ == "__main__":
     local_dir = os.path.dirname(__file__)
     config_path = os.path.join(local_dir, 'NEAT_CONFIG.txt')
-    run(config_path)
+    #run(config_path)
+
 
 main()
