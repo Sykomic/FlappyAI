@@ -37,7 +37,7 @@ class Bird:
         self.img = self.IMGS[0]
 
     def jump(self):
-        self.vel = -10.5 # on pygame, going up is decreasing.
+        self.vel = -5 # on pygame, going up is decreasing. original : 10.5
         self.tick_count = 0
         self.height = self.y
 
@@ -155,7 +155,7 @@ class Base:
         win.blit(self.IMG, (self.x2, self.y))
 
 
-def draw_window(win, birds, pipes, base, score, gen, alive):
+def draw_window2(win, birds, pipes, base, score, gen, alive):
     win.blit(BG_IMG, (0, 0))
 
     for pipe in pipes:
@@ -171,13 +171,10 @@ def draw_window(win, birds, pipes, base, score, gen, alive):
     win.blit(text, (10, 50))
 
     base.draw(win)
-    #bird.draw(win)
-
     for bird in birds:
         bird.draw(win)
 
     pg.display.update()
-
 
 def draw_window(win, bird, pipes, base, score):
     win.blit(BG_IMG, (0, 0))
@@ -241,7 +238,6 @@ def eval_genome(genome, config):
             if outputs[0] > 0.5:
                 bird.jump()
 
-        #bird.move()
         add_pipe = False
         rem = []  # removed pipes
         for pipe in pipes:
@@ -275,9 +271,8 @@ def eval_genome(genome, config):
                 nets.pop(i)
                 ge.pop(i)
 
-
         base.move()
-        draw_window(win, birds, pipes, base, score, GEN, len(birds))
+        draw_window2(win, birds, pipes, base, score, GEN, len(birds))
 
 def gameover(win, score):
     win.blit(BG_IMG, (0, 0))
@@ -299,7 +294,6 @@ def gameover(win, score):
 
     pg.display.update()
 
-
 def main():
     bird = Bird(230, 350)
     base = Base(730)
@@ -311,14 +305,23 @@ def main():
     run = True
     over = False
     while run:
-        clock.tick(100) #30
+        clock.tick(25)
+        keys = pg.key.get_pressed()
         for event in pg.event.get():
             if event.type == pg.KEYDOWN:
-                if event.key == pg.K_SPACE:
+                """if event.key == pg.K_SPACE:
                     bird.jump()
+                    bird.move()
+                    draw_window(win, bird, pipes, base, score)"""
             if event.type == pg.QUIT:
                 run = False
-        #bird.move()
+
+        if keys[pg.K_SPACE]:
+            #ticker = 30
+            bird.jump()
+            bird.move()
+        bird.move()
+
         add_pipe = False
         rem = []  # removed pipes
         for pipe in pipes:
@@ -334,6 +337,10 @@ def main():
 
         if over:
             gameover(win, score)
+            """for event in pg.event.get():
+                if event.type == pg.KEYDOWN:
+                    if event.key == pg.K_SPACE:
+                        pass"""
         else:
             if add_pipe:
                 score += 1
@@ -366,7 +373,7 @@ def run(config_path):
 if __name__ == "__main__":
     local_dir = os.path.dirname(__file__)
     config_path = os.path.join(local_dir, 'NEAT_CONFIG.txt')
-    #run(config_path)
+    run(config_path)
 
 
-main()
+#main()
