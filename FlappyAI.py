@@ -3,9 +3,11 @@ import neat
 import time
 import os
 import random
+pg.font.init()
 
 WIN_WIDTH = 500
 WIN_HEIGHT = 800
+GEN = 0
 
 BIRD_IMGS = [
         pg.transform.scale2x(pg.image.load(os.path.join('imgs', 'bird1.png'))),
@@ -15,6 +17,8 @@ BIRD_IMGS = [
 PIPE_IMG = pg.transform.scale2x(pg.image.load(os.path.join('imgs', 'pipe.png')))
 BASE_IMG = pg.transform.scale2x(pg.image.load(os.path.join('imgs', 'base.png')))
 BG_IMG = pg.transform.scale2x(pg.image.load(os.path.join('imgs', 'bg.png')))
+
+STAT_FONT = pg.font.SysFont("comicsans", 50)
 
 class Bird:
     IMGS = BIRD_IMGS
@@ -151,14 +155,116 @@ class Base:
         win.blit(self.IMG, (self.x2, self.y))
 
 
-def draw_window(win, bird, pipes, base):
+def draw_window(win, birds, pipes, base, score, gen, alive):
     win.blit(BG_IMG, (0, 0))
+
     for pipe in pipes:
         pipe.draw(win)
+
+    text = STAT_FONT.render("Score: " + str(score), 1, (255, 255, 255))
+    win.blit(text, (WIN_WIDTH - 10 - text.get_width(), 10))
+
+    text = STAT_FONT.render("Gen: " + str(gen), 1, (255, 255, 255))
+    win.blit(text, (10, 10))
+
+    text = STAT_FONT.render("Alive: " + str(alive), 1, (255, 255, 255))
+    win.blit(text, (10, 50))
+
     base.draw(win)
-    bird.draw(win)
+    #bird.draw(win)
+
+    for bird in birds:
+        bird.draw(win)
+
     pg.display.update()
 
+
+def eval_genome(genome, config):
+    global GEN
+    GEN += 1
+
+    nets = []
+    ge = []
+    birds = []
+
+    for _, g in genome: # (genome_id, genome_obj)
+        net = neat.nn.FeedForwardNetwork.create(g, config)
+        nets.append(net)
+        birds.append(Bird(230, 350))
+        g.fitness = 0
+        ge.append(g)
+
+    base = Base(730)
+    pipes = [Pipe(600)]
+    win = pg.display.set_mode((WIN_WIDTH, WIN_HEIGHT))
+    clock = pg.time.Clock()
+    score = 0
+
+    run = True
+    while run:
+        clock.tick(30)
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                run = False
+                pg.quit()
+                quit()
+        pipe_ind = 0
+        if len(birds) > 0:
+            # if birds pass the first pipe, then pass the second pipe's info to nn.
+            if len(pipes) > 1 and birds[0].x > pipes[0].x + pipes[0].PIPE_TOP.get_width():
+                pipe_ind = 1
+        else: # no birds left then game over.
+            run = False
+            break
+
+        for i, bird in enumerate(birds):
+            bird.move()
+            ge[i].fitness += 0.1 # give reward when a bird is moving forward.
+            distTopPipe = bird.y - pipes[pipe_ind].height
+            distBottomePipe = bird.y - pipes[pipe_ind].bottom
+
+            outputs = nets[i].activate((bird.y, abs(distTopPipe), abs(distBottomePipe)))
+
+            if outputs[0] > 0.5:
+                bird.jump()
+
+        #bird.move()
+        add_pipe = False
+        rem = []  # removed pipes
+        for pipe in pipes:
+            for i, bird in enumerate(birds):
+                if pipe.collide(bird, win):
+                    ge[i].fitness -= 1  # decrease fitness score by 1
+                    birds.pop(i) # remove the bird object
+                    nets.pop(i)
+                    ge.pop(i)
+
+                if not pipe.passed and pipe.x < bird.x:
+                    pipe.passed = True
+                    add_pipe = True
+            if pipe.x + pipe.PIPE_TOP.get_width() < 0:
+                rem.append(pipe)
+            pipe.move()
+        if add_pipe:
+            score += 1
+            for g in ge:
+                g.fitness += 5
+            pipes.append(Pipe(600))
+
+        for r in rem:
+            pipes.remove(r)
+
+        for i, bird in enumerate(birds):
+            # may have issue because we are removing an item while looping through
+            if bird.y + bird.img.get_height() >= 730 or bird.y < 0:
+                # a bird might go below or above the screen and never dies.
+                birds.pop(i) # remove the bird object
+                nets.pop(i)
+                ge.pop(i)
+
+
+        base.move()
+        draw_window(win, birds, pipes, base, score, GEN, len(birds))
 
 def main():
     bird = Bird(230, 350)
@@ -192,9 +298,31 @@ def main():
 
         for r in rem:
             pipes.remove(r)
+
+        if bird.y + bird.img.get_height() >= 730:
+            pass
+
         base.move()
-        draw_window(win, bird, pipes, base)
-    pg.quit()
-    quit()
+        draw_window(win, bird, pipes, base, score)
+    #pg.quit()
+    #quit()
+
+def run(config_path):
+    config = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
+    neat.DefaultSpeciesSet, neat.DefaultStagnation,
+    config_path)
+
+    pop = neat.Population(config)
+
+    pop.add_reporter(neat.StdOutReporter(True))
+    stats = neat.StatisticsReporter()
+    pop.add_reporter(stats)
+
+    winner = pop.run(eval_genome, 50) # 50 population of main method
+
+if __name__ == "__main__":
+    local_dir = os.path.dirname(__file__)
+    config_path = os.path.join(local_dir, 'NEAT_CONFIG.txt')
+    run(config_path)
 
 main()
