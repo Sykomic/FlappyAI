@@ -40,7 +40,7 @@ class Bird:
         self.img = self.IMGS[0]
 
     def jump(self):
-        self.vel = -10.5 # on pygame, going up is decreasing. original : 10.5
+        self.vel = -5 # on pygame, going up is decreasing. original : 10.5
         self.tick_count = 0
         self.height = self.y
 
@@ -192,7 +192,7 @@ def draw_window(win, bird, pipes, base, score):
     bird.draw(win)
     pg.display.update()
 
-def eval_genome(genome, config, load = False):
+def eval_genome(genome, config, load = False, trained = False):
     global GEN, GOOD
     GEN += 1
 
@@ -215,7 +215,10 @@ def eval_genome(genome, config, load = False):
 
     run = True
     while run:
-        clock.tick(100)
+        if trained:
+            clock.tick(30)
+        else:
+            clock.tick(100)
         if score >= 50 and load == False:
             GOOD = True
             run = False
@@ -280,26 +283,6 @@ def eval_genome(genome, config, load = False):
         base.move()
         draw_window2(win, birds, pipes, base, score, GEN, len(birds))
 
-def gameover(win, score):
-    win.blit(BG_IMG, (0, 0))
-    text = STAT_FONT.render("Game Over!", 1, (255, 255, 255))
-    text_width = text.get_width()
-    text_height = text.get_height()
-    center = (WIN_WIDTH / 2 - text_width / 2, WIN_HEIGHT / 2 - text_height / 2 - 50)
-    win.blit(text, center)
-    text = STAT_FONT.render("You scored " + str(score) + " Points", 1, (255, 255, 255))
-    text_width = text.get_width()
-    text_height = text.get_height()
-    center = (WIN_WIDTH / 2 - text_width / 2, WIN_HEIGHT / 2 - text_height / 2)
-    win.blit(text, center)
-    text = STAT_FONT.render("Press space bar to play again", 1, (255, 255, 255))
-    text_width = text.get_width()
-    text_height = text.get_height()
-    center = (WIN_WIDTH / 2 - text_width / 2, WIN_HEIGHT / 2 - text_height / 2 + 50)
-    win.blit(text, center)
-
-    pg.display.update()
-
 def main():
     bird = Bird(230, 350)
     base = Base(730)
@@ -311,7 +294,7 @@ def main():
     run = True
     over = False
     while run:
-        clock.tick(25)
+        clock.tick(30)
 
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -360,6 +343,26 @@ def main():
     #pg.quit()
     #quit()
 
+def gameover(win, score):
+    win.blit(BG_IMG, (0, 0))
+    text = STAT_FONT.render("Game Over!", 1, (255, 255, 255))
+    text_width = text.get_width()
+    text_height = text.get_height()
+    center = (WIN_WIDTH / 2 - text_width / 2, WIN_HEIGHT / 2 - text_height / 2 - 50)
+    win.blit(text, center)
+    text = STAT_FONT.render("You scored " + str(score) + " Points", 1, (255, 255, 255))
+    text_width = text.get_width()
+    text_height = text.get_height()
+    center = (WIN_WIDTH / 2 - text_width / 2, WIN_HEIGHT / 2 - text_height / 2)
+    win.blit(text, center)
+    text = STAT_FONT.render("Press space bar to play again", 1, (255, 255, 255))
+    text_width = text.get_width()
+    text_height = text.get_height()
+    center = (WIN_WIDTH / 2 - text_width / 2, WIN_HEIGHT / 2 - text_height / 2 + 50)
+    win.blit(text, center)
+
+    pg.display.update()
+
 def run(config_path):
     config = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
     neat.DefaultSpeciesSet, neat.DefaultStagnation,
@@ -391,6 +394,6 @@ if __name__ == "__main__":
             with open('model_pickle', 'rb') as f:
                 genome = pickle.load(f)
             genomes = [(1, genome)]
-            eval_genome(genomes, config, True)
+            eval_genome(genomes, config, True, True)
     else:
         main()
