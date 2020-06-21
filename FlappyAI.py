@@ -1,3 +1,4 @@
+import sys
 import pygame as pg
 import neat
 import time
@@ -37,7 +38,7 @@ class Bird:
         self.img = self.IMGS[0]
 
     def jump(self):
-        self.vel = -5 # on pygame, going up is decreasing. original : 10.5
+        self.vel = -10.5 # on pygame, going up is decreasing. original : 10.5
         self.tick_count = 0
         self.height = self.y
 
@@ -212,7 +213,9 @@ def eval_genome(genome, config):
 
     run = True
     while run:
-        clock.tick(30)
+        clock.tick(100)
+        if score >= 50:
+            run = False
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 run = False
@@ -306,16 +309,13 @@ def main():
     over = False
     while run:
         clock.tick(25)
-        keys = pg.key.get_pressed()
+
         for event in pg.event.get():
-            if event.type == pg.KEYDOWN:
-                """if event.key == pg.K_SPACE:
-                    bird.jump()
-                    bird.move()
-                    draw_window(win, bird, pipes, base, score)"""
             if event.type == pg.QUIT:
                 run = False
-
+                pg.quit()
+                quit()
+        keys = pg.key.get_pressed()
         if keys[pg.K_SPACE]:
             #ticker = 30
             bird.jump()
@@ -324,8 +324,12 @@ def main():
 
         add_pipe = False
         rem = []  # removed pipes
+
         for pipe in pipes:
             if pipe.collide(bird, win):
+                over = True
+                break
+            if bird.y + bird.img.get_height() >= 730:
                 over = True
                 break
             if pipe.x + pipe.PIPE_TOP.get_width() < 0:
@@ -334,13 +338,12 @@ def main():
                 pipe.passed = True
                 add_pipe = True
             pipe.move()
-
         if over:
             gameover(win, score)
-            """for event in pg.event.get():
+            for event in pg.event.get():
                 if event.type == pg.KEYDOWN:
                     if event.key == pg.K_SPACE:
-                        pass"""
+                        main()
         else:
             if add_pipe:
                 score += 1
@@ -348,9 +351,6 @@ def main():
 
             for r in rem:
                 pipes.remove(r)
-
-            if bird.y + bird.img.get_height() >= 730:
-                pass
 
             base.move()
             draw_window(win, bird, pipes, base, score)
@@ -373,7 +373,10 @@ def run(config_path):
 if __name__ == "__main__":
     local_dir = os.path.dirname(__file__)
     config_path = os.path.join(local_dir, 'NEAT_CONFIG.txt')
-    run(config_path)
-
-
-#main()
+    if len(sys.argv) == 2:
+        if sys.argv[1] == '-m':
+            main()
+        elif sys.argv[1] == '-ai':
+            run(config_path)
+    else:
+        main()
