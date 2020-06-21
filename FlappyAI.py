@@ -4,11 +4,13 @@ import neat
 import time
 import os
 import random
+import pickle
 pg.font.init()
 
 WIN_WIDTH = 500
 WIN_HEIGHT = 800
 GEN = 0
+GOOD = False
 
 BIRD_IMGS = [
         pg.transform.scale2x(pg.image.load(os.path.join('imgs', 'bird1.png'))),
@@ -190,8 +192,8 @@ def draw_window(win, bird, pipes, base, score):
     bird.draw(win)
     pg.display.update()
 
-def eval_genome(genome, config):
-    global GEN
+def eval_genome(genome, config, load = False):
+    global GEN, GOOD
     GEN += 1
 
     nets = []
@@ -214,7 +216,8 @@ def eval_genome(genome, config):
     run = True
     while run:
         clock.tick(100)
-        if score >= 50:
+        if score >= 50 and load == False:
+            GOOD = True
             run = False
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -369,6 +372,9 @@ def run(config_path):
     pop.add_reporter(stats)
 
     winner = pop.run(eval_genome, 50) # 50 population of main method
+    if GOOD == True:
+        with open('model_pickle', 'wb') as f:
+            pickle.dump(winner, f)
 
 if __name__ == "__main__":
     local_dir = os.path.dirname(__file__)
@@ -378,5 +384,13 @@ if __name__ == "__main__":
             main()
         elif sys.argv[1] == '-ai':
             run(config_path)
+        elif sys.argv[1] == '-p': # Load a trained flappy bird.
+            config = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
+            neat.DefaultSpeciesSet, neat.DefaultStagnation,
+            config_path)
+            with open('model_pickle', 'rb') as f:
+                genome = pickle.load(f)
+            genomes = [(1, genome)]
+            eval_genome(genomes, config, True)
     else:
         main()
